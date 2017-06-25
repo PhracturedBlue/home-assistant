@@ -24,7 +24,7 @@ REQUIREMENTS = ['asteriskvm']
 _LOGGER = logging.getLogger(__name__)
 
 SIGNAL_MESSAGE_UPDATE = 'asteriskvm.message_updated'
-DOMAIN = 'asteriskvm'
+DOMAIN = 'Voicemail'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME): cv.string,
@@ -83,7 +83,7 @@ class AsteriskVMSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return '{} packages'.format(self._name or DOMAIN)
+        return '{}'.format(self._name or DOMAIN)
 
     @property
     def should_poll(self):
