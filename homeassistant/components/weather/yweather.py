@@ -138,9 +138,19 @@ class YahooWeatherWeather(WeatherEntity):
         return round(float(self._data.yahoo.Atmosphere['visibility'])/1.61, 2)
 
     @property
+    def visibility_unit(self):
+        """Return the visibility units."""
+        return self._data.yahoo.Units.get('distance')
+
+    @property
     def wind_speed(self):
         """Return the wind speed."""
         return round(float(self._data.yahoo.Wind['speed'])/1.61, 2)
+
+    @property
+    def wind_speed_unit(self):
+        """Return the wind speed units."""
+        return self._data.yahoo.Units.get('speed')
 
     @property
     def wind_bearing(self):

@@ -9,7 +9,10 @@ from datetime import datetime, timedelta
 from homeassistant.components.weather import (
     WeatherEntity, ATTR_FORECAST_CONDITION, ATTR_FORECAST_PRECIPITATION,
     ATTR_FORECAST_TEMP, ATTR_FORECAST_TEMP_LOW, ATTR_FORECAST_TIME)
-from homeassistant.const import (TEMP_CELSIUS, TEMP_FAHRENHEIT)
+from homeassistant.const import (
+    TEMP_CELSIUS, TEMP_FAHRENHEIT, SPEED_MILES_PER_HOUR,
+    SPEED_KILOMETERS_PER_HOUR,
+    )
 
 CONDITION_CLASSES = {
     'cloudy': [],
@@ -33,11 +36,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Demo weather."""
     add_devices([
         DemoWeather('South', 'Sunshine', 21.6414, 92, 1099, 0.5, TEMP_CELSIUS,
+                    SPEED_KILOMETERS_PER_HOUR,
                     [['rainy', 1, 22, 15], ['rainy', 5, 19, 8],
                      ['cloudy', 0, 15, 9], ['sunny', 0, 12, 6],
                      ['partlycloudy', 2, 14, 7], ['rainy', 15, 18, 7],
                      ['fog', 0.2, 21, 12]]),
         DemoWeather('North', 'Shower rain', -12, 54, 987, 4.8, TEMP_FAHRENHEIT,
+                    SPEED_MILES_PER_HOUR,
                     [['snowy', 2, -10, -15], ['partlycloudy', 1, -13, -14],
                      ['sunny', 0, -18, -22], ['sunny', 0.1, -23, -23],
                      ['snowy', 4, -19, -20], ['sunny', 0.3, -14, -19],
@@ -49,7 +54,7 @@ class DemoWeather(WeatherEntity):
     """Representation of a weather condition."""
 
     def __init__(self, name, condition, temperature, humidity, pressure,
-                 wind_speed, temperature_unit, forecast):
+                 wind_speed, temperature_unit, wind_speed_unit, forecast):
         """Initialize the Demo weather."""
         self._name = name
         self._condition = condition
@@ -58,6 +63,7 @@ class DemoWeather(WeatherEntity):
         self._humidity = humidity
         self._pressure = pressure
         self._wind_speed = wind_speed
+        self._wind_speed_unit = wind_speed_unit
         self._forecast = forecast
 
     @property
@@ -89,6 +95,11 @@ class DemoWeather(WeatherEntity):
     def wind_speed(self):
         """Return the wind speed."""
         return self._wind_speed
+
+    @property
+    def wind_speed_unit(self):
+        """Return the wind speed units."""
+        return self._wind_speed_unit
 
     @property
     def pressure(self):

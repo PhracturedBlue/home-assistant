@@ -13,7 +13,8 @@ from homeassistant.components.weather import (
     WeatherEntity, PLATFORM_SCHEMA, ATTR_FORECAST_CONDITION,
     ATTR_FORECAST_TEMP, ATTR_FORECAST_TEMP_LOW, ATTR_FORECAST_TIME)
 from homeassistant.const import \
-    CONF_NAME, TEMP_CELSIUS, CONF_LATITUDE, CONF_LONGITUDE
+    CONF_NAME, TEMP_CELSIUS, CONF_LATITUDE, CONF_LONGITUDE, \
+    LENGTH_KILOMETERS, SPEED_KILOMETERS_PER_HOUR
 from homeassistant.helpers import config_validation as cv
 # Reuse data and API logic from the sensor implementation
 from homeassistant.components.sensor.buienradar import (
@@ -139,10 +140,19 @@ class BrWeather(WeatherEntity):
         """Return the current visibility."""
         return self._data.visibility
 
+    def visibility_unit(self):
+        """Return the visibility units."""
+        return LENGTH_KILOMETERS
+
     @property
     def wind_speed(self):
         """Return the current windspeed."""
         return self._data.wind_speed
+
+    @property
+    def wind_speed_unit(self):
+        """Return the wind speed units."""
+        return SPEED_KILOMETERS_PER_HOUR
 
     @property
     def wind_bearing(self):

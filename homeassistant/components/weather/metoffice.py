@@ -12,7 +12,8 @@ from homeassistant.components.sensor.metoffice import (
     CONDITION_CLASSES, CONF_ATTRIBUTION, MetOfficeCurrentData)
 from homeassistant.components.weather import PLATFORM_SCHEMA, WeatherEntity
 from homeassistant.const import (
-    CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE, CONF_NAME, TEMP_CELSIUS)
+    CONF_API_KEY, CONF_LATITUDE, CONF_LONGITUDE, CONF_NAME, TEMP_CELSIUS,
+    SPEED_KILOMETERS_PER_HOUR)
 from homeassistant.helpers import config_validation as cv
 
 REQUIREMENTS = ['datapoint==0.4.3']
@@ -114,6 +115,11 @@ class MetOfficeWeather(WeatherEntity):
     def wind_speed(self):
         """Return the wind speed."""
         return self.data.data.wind_speed.value
+
+    @property
+    def wind_speed_unit(self):
+        """Return the wind speed units."""
+        return SPEED_KILOMETERS_PER_HOUR
 
     @property
     def wind_bearing(self):
