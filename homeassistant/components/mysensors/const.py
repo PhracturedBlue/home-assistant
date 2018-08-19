@@ -14,6 +14,7 @@ CONF_TCP_PORT = 'tcp_port'
 CONF_TOPIC_IN_PREFIX = 'topic_in_prefix'
 CONF_TOPIC_OUT_PREFIX = 'topic_out_prefix'
 CONF_VERSION = 'version'
+CONF_NODE_VALUE_TYPE_ORDER = 'value_type_order'
 
 DOMAIN = 'mysensors'
 MYSENSORS_GATEWAYS = 'mysensors_gateways'

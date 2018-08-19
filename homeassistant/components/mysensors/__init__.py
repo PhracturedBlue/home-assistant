@@ -18,7 +18,7 @@ from .const import (
     ATTR_DEVICES, CONF_BAUD_RATE, CONF_DEVICE, CONF_GATEWAYS,
     CONF_NODES, CONF_PERSISTENCE, CONF_PERSISTENCE_FILE, CONF_RETAIN,
     CONF_TCP_PORT, CONF_TOPIC_IN_PREFIX, CONF_TOPIC_OUT_PREFIX, CONF_VERSION,
-    DOMAIN, MYSENSORS_GATEWAYS)
+    DOMAIN, MYSENSORS_GATEWAYS, CONF_NODE_VALUE_TYPE_ORDER)
 from .device import get_mysensors_devices
 from .gateway import get_mysensors_gateway, setup_gateways, finish_setup
 
@@ -72,7 +72,9 @@ def deprecated(key):
 
 NODE_SCHEMA = vol.Schema({
     cv.positive_int: {
-        vol.Required(CONF_NODE_NAME): cv.string
+        vol.Optional(CONF_NODE_NAME): cv.string,
+        vol.Optional(
+            CONF_NODE_VALUE_TYPE_ORDER, default={}): dict,
     }
 })
 
@@ -116,14 +118,29 @@ async def async_setup(hass, config):
     return True
 
 
-def _get_mysensors_name(gateway, node_id, child_id):
+def get_mysensors_name(gateway, node_id, child_id, value_type):
     """Return a name for a node child."""
     node_name = '{} {}'.format(
         gateway.sensors[node_id].sketch_name, node_id)
-    node_name = next(
-        (node[CONF_NODE_NAME] for conf_id, node in gateway.nodes_config.items()
-         if node.get(CONF_NODE_NAME) is not None and conf_id == node_id),
-        node_name)
+    node = next(
+        (node for conf_id, node in gateway.nodes_config.items()
+         if conf_id == node_id), None)
+    if node and node.get(CONF_NODE_NAME) is not None:
+        node_name = node[CONF_NODE_NAME]
+    if (node and node.get(CONF_NODE_VALUE_TYPE_ORDER, {})
+            and node[CONF_NODE_VALUE_TYPE_ORDER].get(child_id)):
+        order = node[CONF_NODE_VALUE_TYPE_ORDER][child_id]
+        set_req = gateway.const.SetReq
+        value_type_name = next(
+            (member.name for member in set_req
+             if member.value == value_type), None)
+        if value_type_name:
+            try:
+                index = order.index(value_type_name)
+                if index > 0:
+                    return '{} {} {}'.format(node_name, child_id, index + 1)
+            except Exception:
+                pass
     return '{} {}'.format(node_name, child_id)
 
 
@@ -153,7 +170,7 @@ def setup_mysensors_platform(
             child = gateway.sensors[node_id].children[child_id]
             s_type = gateway.const.Presentation(child.type).name
             device_class_copy = device_class[s_type]
-        name = _get_mysensors_name(gateway, node_id, child_id)
+        name = get_mysensors_name(gateway, node_id, child_id, value_type)
 
         args_copy = (*device_args, gateway, node_id, child_id, name,
                      value_type)
