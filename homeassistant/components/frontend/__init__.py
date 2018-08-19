@@ -28,6 +28,10 @@ from homeassistant.util.yaml import load_yaml
 
 REQUIREMENTS = ['home-assistant-frontend==20180818.0']
 
+REQUIREMENTS[0] = 'http://github.com/PhracturedBlue/home-assistant-polymer/' \
+                  'raw/custom/home-assistant-frontend.tar.gz' \
+                  '#home-assistant-frontend==20180818.0'
+
 DOMAIN = 'frontend'
 DEPENDENCIES = ['api', 'websocket_api', 'http', 'system_log',
                 'auth', 'onboarding']
