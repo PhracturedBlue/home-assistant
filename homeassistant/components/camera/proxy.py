@@ -222,7 +222,8 @@ class ProxyCamera(Camera):
                         _resize_image, image, self._stream_opts)
                     await write(image)
                     data = data[jpg_end + 2:]
-        finally:
+        except asyncio.CancelledError:
+            _LOGGER.debug("Stream closed by frontend.")
             req.close()
 
         return response
