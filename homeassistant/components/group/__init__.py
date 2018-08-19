@@ -30,6 +30,7 @@ ENTITY_ID_FORMAT = DOMAIN + '.{}'
 CONF_ENTITIES = 'entities'
 CONF_VIEW = 'view'
 CONF_CONTROL = 'control'
+CONF_HIDE_ON_HOME = 'hide_on_home'
 
 ATTR_ADD_ENTITIES = 'add_entities'
 ATTR_AUTO = 'auto'
@@ -39,6 +40,7 @@ ATTR_OBJECT_ID = 'object_id'
 ATTR_ORDER = 'order'
 ATTR_VIEW = 'view'
 ATTR_VISIBLE = 'visible'
+ATTR_HIDE_ON_HOME = 'hide_on_home'
 
 SERVICE_SET_VISIBILITY = 'set_visibility'
 SERVICE_SET = 'set'
@@ -57,6 +59,7 @@ SET_SERVICE_SCHEMA = vol.Schema({
     vol.Required(ATTR_OBJECT_ID): cv.slug,
     vol.Optional(ATTR_NAME): cv.string,
     vol.Optional(ATTR_VIEW): cv.boolean,
+    vol.Optional(ATTR_HIDE_ON_HOME): cv.boolean,
     vol.Optional(ATTR_ICON): cv.string,
     vol.Optional(ATTR_CONTROL): CONTROL_TYPES,
     vol.Optional(ATTR_VISIBLE): cv.boolean,
@@ -82,6 +85,7 @@ def _conf_preprocess(value):
 GROUP_SCHEMA = vol.Schema({
     vol.Optional(CONF_ENTITIES): vol.Any(cv.entity_ids, None),
     CONF_VIEW: cv.boolean,
+    CONF_HIDE_ON_HOME: cv.boolean,
     CONF_NAME: cv.string,
     CONF_ICON: cv.icon,
     CONF_CONTROL: CONTROL_TYPES,
@@ -142,17 +146,19 @@ def set_visibility(hass, entity_id=None, visible=True):
 
 @bind_hass
 def set_group(hass, object_id, name=None, entity_ids=None, visible=None,
-              icon=None, view=None, control=None, add=None):
+              icon=None, view=None, control=None, add=None,
+              hide_on_home=None):
     """Create/Update a group."""
     hass.add_job(
         async_set_group, hass, object_id, name, entity_ids, visible, icon,
-        view, control, add)
+        view, control, add, hide_on_home)
 
 
 @callback
 @bind_hass
 def async_set_group(hass, object_id, name=None, entity_ids=None, visible=None,
-                    icon=None, view=None, control=None, add=None):
+                    icon=None, view=None, control=None, add=None,
+                    hide_on_home=None):
     """Create/Update a group."""
     data = {
         key: value for key, value in [
@@ -164,6 +170,7 @@ def async_set_group(hass, object_id, name=None, entity_ids=None, visible=None,
             (ATTR_VIEW, view),
             (ATTR_CONTROL, control),
             (ATTR_ADD_ENTITIES, add),
+            (ATTR_HIDE_ON_HOME, hide_on_home),
         ] if value is not None
     }
 
@@ -279,7 +286,8 @@ async def async_setup(hass, config):
                 service.data.get(ATTR_ADD_ENTITIES) or None
 
             extra_arg = {attr: service.data[attr] for attr in (
-                ATTR_VISIBLE, ATTR_ICON, ATTR_VIEW, ATTR_CONTROL
+                ATTR_VISIBLE, ATTR_ICON, ATTR_VIEW, ATTR_CONTROL,
+                ATTR_HIDE_ON_HOME
             ) if service.data.get(attr) is not None}
 
             await Group.async_create_group(
@@ -329,6 +337,10 @@ async def async_setup(hass, config):
                 group.view = service.data[ATTR_VIEW]
                 need_update = True
 
+            if ATTR_HIDE_ON_HOME in service.data:
+                group.hide_on_home = service.data[ATTR_HIDE_ON_HOME]
+                need_update = True
+
             if need_update:
                 await group.async_update_ha_state()
 
@@ -373,20 +385,23 @@ async def _async_process_config(hass, config, component):
         entity_ids = conf.get(CONF_ENTITIES) or []
         icon = conf.get(CONF_ICON)
         view = conf.get(CONF_VIEW)
+        hide_on_home = conf.get(CONF_HIDE_ON_HOME)
         control = conf.get(CONF_CONTROL)
 
         # Don't create tasks and await them all. The order is important as
         # groups get a number based on creation order.
         await Group.async_create_group(
             hass, name, entity_ids, icon=icon, view=view,
-            control=control, object_id=object_id)
+            control=control, object_id=object_id,
+            hide_on_home=hide_on_home)
 
 
 class Group(Entity):
     """Track a group of entity ids."""
 
     def __init__(self, hass, name, order=None, visible=True, icon=None,
-                 view=False, control=None, user_defined=True, entity_ids=None):
+                 view=False, control=None, user_defined=True, entity_ids=None,
+                 hide_on_home=False):
         """Initialize a group.
 
         This Object has factory function for creation.
@@ -400,6 +415,7 @@ class Group(Entity):
             self.tracking = tuple(ent_id.lower() for ent_id in entity_ids)
         else:
             self.tracking = tuple()
+        self.hide_on_home = hide_on_home
         self.group_on = None
         self.group_off = None
         self.visible = visible
@@ -412,18 +428,19 @@ class Group(Entity):
     @staticmethod
     def create_group(hass, name, entity_ids=None, user_defined=True,
                      visible=True, icon=None, view=False, control=None,
-                     object_id=None):
+                     object_id=None, hide_on_home=False):
         """Initialize a group."""
         return run_coroutine_threadsafe(
             Group.async_create_group(
                 hass, name, entity_ids, user_defined, visible, icon, view,
-                control, object_id),
+                control, object_id, hide_on_home),
             hass.loop).result()
 
     @staticmethod
     async def async_create_group(hass, name, entity_ids=None,
                                  user_defined=True, visible=True, icon=None,
-                                 view=False, control=None, object_id=None):
+                                 view=False, control=None, object_id=None,
+                                 hide_on_home=False):
         """Initialize a group.
 
         This method must be run in the event loop.
@@ -432,7 +449,8 @@ class Group(Entity):
             hass, name,
             order=len(hass.states.async_entity_ids(DOMAIN)),
             visible=visible, icon=icon, view=view, control=control,
-            user_defined=user_defined, entity_ids=entity_ids
+            user_defined=user_defined, entity_ids=entity_ids,
+            hide_on_home=hide_on_home
         )
 
         group.entity_id = async_generate_entity_id(
@@ -499,6 +517,8 @@ class Group(Entity):
             data[ATTR_VIEW] = True
         if self.control:
             data[ATTR_CONTROL] = self.control
+        if self.hide_on_home:
+            data[ATTR_HIDE_ON_HOME] = True
         return data
 
     @property
